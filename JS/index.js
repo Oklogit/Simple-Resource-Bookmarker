@@ -8,130 +8,187 @@ let descriptionOfWebsite = document.getElementById("descriptionOfWebsite");
 let resourcesSection = document.getElementById("resources-section");
 
 function revealModalOverlay() {
-	modalOverlay.classList.remove("modal-overlay");
-	modalOverlay.classList.add("modal-overlay-visible");
-	nameOfWebsite.focus();
+    modalOverlay.classList.remove("modal-overlay");
+    modalOverlay.classList.add("modal-overlay-visible");
+    nameOfWebsite.focus();
 }
 createButton.addEventListener("click", revealModalOverlay);
 
 function closeBackModalOverlay() {
-	if (modalOverlay.classList.contains("modal-overlay-visible")) {
-		modalOverlay.classList.remove("modal-overlay-visible");
-		modalOverlay.classList.add("modal-overlay");
-	}
+    if (modalOverlay.classList.contains("modal-overlay-visible")) {
+        modalOverlay.classList.remove("modal-overlay-visible");
+        modalOverlay.classList.add("modal-overlay");
+    }
 }
 closeModalIcon.addEventListener("click", closeBackModalOverlay);
 
 let resources = [];
 
 function printResourcesOnUI() {
-	resourcesSection.innerHTML = "";
+    resourcesSection.innerHTML = "";
 
-	resources.forEach(function (allResourcesFromArray) {
-		let printSiteName = allResourcesFromArray.siteName;
-		let printSiteLink = allResourcesFromArray.siteLink;
-		let printSiteDescription = allResourcesFromArray.siteDescription;
+    resources.forEach(function (resource, index) {
+        let printSiteName = resource.siteName;
+        let printSiteLink = resource.siteLink;
+        let printSiteDescription = resource.siteDescription;
 
-		let resourceDIV = document.createElement("div");
-		resourceDIV.classList.add("resource");
+        let resourceDIV = document.createElement("div");
+        resourceDIV.classList.add("resource");
 
-		let nameOfWebsiteDiv = document.createElement("div");
-		nameOfWebsiteText.classList.add("nameOfWebsite");
-		let nameOfWebsiteText = document.createElement("a");
-		nameOfWebsiteText.setAttribute("href", `${printSiteLink}`);
-		nameOfWebsiteText.setAttribute("target", "_blank");
-		if (printSiteName === "") {
-			nameOfWebsiteText.textContent = printSiteLink;
-		} else {
-			nameOfWebsiteText.textContent = printSiteName;
-		}
+        let nameOfWebsiteDiv = document.createElement("div");
+        nameOfWebsiteDiv.classList.add("nameOfWebsite");
 
-		let deleteIcon = document.createElement("h2");
-		deleteIcon.classList.add("fa", "fa-trash", "fa-xs");
+        let nameOfWebsiteText = document.createElement("a");
+        nameOfWebsiteText.setAttribute("href", printSiteLink);
+        nameOfWebsiteText.setAttribute("target", "_blank");
+        nameOfWebsiteText.setAttribute("rel", "noopener noreferrer"); // Security improvement
+        
+        if (printSiteName === "" || printSiteName.trim() === "") {
+            nameOfWebsiteText.textContent = printSiteLink;
+        } else {
+            nameOfWebsiteText.textContent = printSiteName;
+        }
 
-		deleteIcon.setAttribute(`onclick`, `deleteRes('${printSiteLink}')`);
+        // Fixed: Use button instead of h2 for better semantics and accessibility
+        let deleteIcon = document.createElement("button");
+        deleteIcon.classList.add("delete-btn", "fa", "fa-trash", "fa-xs");
+        deleteIcon.setAttribute("type", "button");
+        deleteIcon.setAttribute("aria-label", `Delete ${printSiteName || printSiteLink}`);
+        
+        // Fixed: Use data attribute and event listener instead of onclick for security
+        deleteIcon.dataset.resourceIndex = index;
+        deleteIcon.addEventListener("click", function() {
+            deleteResByIndex(parseInt(this.dataset.resourceIndex));
+        });
 
-		let descriptionOfWebsiteDiv = document.createElement("div");
-		descriptionOfWebsiteDiv.classList.add("description-of-website");
+        let descriptionOfWebsiteDiv = document.createElement("div");
+        descriptionOfWebsiteDiv.classList.add("description-of-website");
 
-		let descriptionText = document.createElement("p");
-		descriptionText.textContent = printSiteDescription;
+        let descriptionText = document.createElement("p");
+        descriptionText.textContent = printSiteDescription;
 
-		descriptionOfWebsiteDiv.append(descriptionText);
-		nameOfWebsiteDiv.append();
-		resourceDIV.append(
-			deleteIcon,
-			nameOfWebsiteText,
-			// nameOfWebsiteDiv,
-			descriptionOfWebsiteDiv
-		);
-		resourcesSection.append(resourceDIV);
-	});
+        descriptionOfWebsiteDiv.append(descriptionText);
+        nameOfWebsiteDiv.append(nameOfWebsiteText);
+        resourceDIV.append(
+            deleteIcon,
+            nameOfWebsiteDiv,
+            descriptionOfWebsiteDiv
+        );
+        resourcesSection.append(resourceDIV);
+    });
 }
 
-// function deleteResource(joseph) {
-// 	resources.forEach(function (resource, index) {
-// 		if (resource.siteLink === joseph) {
-// 			resources.splice(index, 1);
-// 		}
-// 	});
+// Fixed: More reliable delete function using index
+function deleteResByIndex(index) {
+    if (index >= 0 && index < resources.length) {
+        resources.splice(index, 1);
+        saveResources();
+        fetchResources();
+    }
+}
 
-// 	localStorage.setItem("resources", JSON.stringify(resources));
-// 	fetchResources();
-// }
+// Alternative: Delete by URL (your original approach, but improved)
+function deleteResByURL(siteLink) {
+    const index = resources.findIndex(resource => resource.siteLink === siteLink);
+    if (index !== -1) {
+        resources.splice(index, 1);
+        saveResources();
+        fetchResources();
+    }
+}
 
-fetchResources();
-
-function deleteRes(printSiteLink) {
-	resources.forEach(function (resource, index) {
-		if (resource.siteLink === printSiteLink) {
-			resources.splice(index, 1);
-		}
-	});
-	localStorage.setItem("resources", JSON.stringify(resources));
-	fetchResources();
+// Fixed: Added error handling for localStorage
+function saveResources() {
+    try {
+        localStorage.setItem("resources", JSON.stringify(resources));
+    } catch (error) {
+        console.error("Failed to save resources to localStorage:", error);
+        alert("Failed to save resources. Storage might be full.");
+    }
 }
 
 function fetchResources() {
-	if (localStorage.getItem("resources")) {
-		resources = JSON.parse(localStorage.getItem("resources"));
-	}
+    try {
+        if (localStorage.getItem("resources")) {
+            resources = JSON.parse(localStorage.getItem("resources"));
+        }
+    } catch (error) {
+        console.error("Failed to load resources from localStorage:", error);
+        resources = []; // Reset to empty array if corrupted
+    }
 
-	printResourcesOnUI();
+    printResourcesOnUI();
 }
+
+// Fixed: Better URL validation
+function isValidURL(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+// Fixed: Check for duplicate URLs
+function isDuplicateURL(url) {
+    return resources.some(resource => resource.siteLink === url);
+}
+
 linkOfWebsite.oninvalid = () => {
-	linkOfWebsite.setCustomValidity("please enter the site URL");
+    linkOfWebsite.setCustomValidity("Please enter a valid URL");
+};
+
+// Reset custom validity on input
+linkOfWebsite.oninput = () => {
+    linkOfWebsite.setCustomValidity("");
 };
 
 resourceForm.addEventListener("submit", handleForm);
+
 function handleForm(event) {
-	event.preventDefault();
+    event.preventDefault();
 
-	let websiteName = nameOfWebsite.value;
-	let websiteURL = linkOfWebsite.value;
-	let description = descriptionOfWebsite.value;
+    let websiteName = nameOfWebsite.value.trim();
+    let websiteURL = linkOfWebsite.value.trim();
+    let description = descriptionOfWebsite.value.trim();
 
-	// if (nameOfWebsite.value === "") {
-	// 	nameOfWebsite.style.border = "1px solid red";
-	// }
+    // Fixed: Add proper validation
+    if (!websiteURL) {
+        alert("Please enter a website URL");
+        linkOfWebsite.focus();
+        return;
+    }
 
-	// if (linkOfWebsite.value === "") {
-	// 	linkOfWebsite.style.border = "1px solid red";
-	// }
+    // Add http:// if no protocol specified
+    if (!websiteURL.startsWith('http://') && !websiteURL.startsWith('https://')) {
+        websiteURL = 'https://' + websiteURL;
+    }
 
-	// if (descriptionOfWebsite.value === "") {
-	// 	descriptionOfWebsite.style.border = "1px solid red";
-	// }
+    if (!isValidURL(websiteURL)) {
+        alert("Please enter a valid URL");
+        linkOfWebsite.focus();
+        return;
+    }
 
-	const aCreatedResource = {
-		siteName: websiteName,
-		siteLink: websiteURL,
-		siteDescription: description,
-	};
+    if (isDuplicateURL(websiteURL)) {
+        alert("This URL already exists in your resources!");
+        linkOfWebsite.focus();
+        return;
+    }
 
-	resources.push(aCreatedResource);
-	localStorage.setItem("resources", JSON.stringify(resources));
-	fetchResources();
-	resourceForm.reset();
-	closeBackModalOverlay();
+    const newResource = {
+        siteName: websiteName,
+        siteLink: websiteURL,
+        siteDescription: description,
+    };
+
+    resources.push(newResource);
+    saveResources();
+    fetchResources();
+    resourceForm.reset();
+    closeBackModalOverlay();
 }
+
+// Initialize the app
+fetchResources();
